@@ -2,6 +2,7 @@ const taskInput = document.getElementById("taskInput");
 const addButton = document.getElementById("addButton");
 const taskList = document.getElementById("taskList");
 const taskCounter = document.getElementById("taskCounter");
+const emptyMessage = document.getElementById("emptyMessage");
 const clearCompletedButton = document.getElementById(
     "clearCompletedButton"
 );
@@ -12,15 +13,27 @@ const filterButtons = document.querySelectorAll(
 
 let currentFilter = "all";
 
-// 1. Filter tasks
-function filterTasks() {
+function updateCounter(){
+    const tasks = taskList.querySelectorAll(".task-item");
+    let remaining = 0;
+
+    tasks.forEach(function (task){
+        const checkbox = task.querySelector('input[type="checkbox"]');
+
+        if (!checkbox.checked){
+            remaining++;
+        }
+    });
+
+    taskCounter.textContent =
+        remaining + (remaining === 1 ? " task remaining" : " tasks remaining");
+}
+
+function filterTasks(){
     const tasks = taskList.querySelectorAll(".task-item");
 
     tasks.forEach(function (task) {
-        const checkbox = task.querySelector(
-            'input[type="checkbox"]'
-        );
-
+        const checkbox = task.querySelector('input[type="checkbox"]');
         const isCompleted = checkbox.checked;
 
         const shouldShow =
@@ -30,130 +43,74 @@ function filterTasks() {
 
         task.style.display = shouldShow ? "" : "none";
     });
-}
 
-// 2. Update the remaining task counter
-function updateCounter() {
-    const tasks = taskList.querySelectorAll(".task-item");
-    let remaining = 0;
-
-    tasks.forEach(function (task) {
-        const checkbox = task.querySelector(
-            'input[type="checkbox"]'
-        );
-
-        if (!checkbox.checked) {
-            remaining++;
-        }
+    const hasVisibleTasks = Array.from(tasks).some(function (task) {
+        return task.style.display !== "none";
     });
 
-    if (remaining === 1) {
-        taskCounter.textContent = "1 task remaining";
-    } else {
-        taskCounter.textContent = remaining + " tasks remaining";
-    }
+    emptyMessage.hidden = hasVisibleTasks;
 }
 
-// 3. Add completed styling
-function updateTaskStyle(task) {
-    const checkbox = task.querySelector(
-        'input[type="checkbox"]'
-    );
-
-    task.classList.toggle("completed", checkbox.checked);
-}
-
-// 4. Connect every task's checkbox and Delete button
-function setupTask(task) {
-    const checkbox = task.querySelector(
-        'input[type="checkbox"]'
-    );
-
-    const deleteButton = task.querySelector("button");
-
-    // Set the correct completed style when the page loads
-    updateTaskStyle(task);
-
-    // Handle completing or uncompleting a task
-    checkbox.addEventListener("change", function () {
-        updateTaskStyle(task);
-        updateCounter();
-        filterTasks();
-    });
-
-    // Handle deleting a task
-    deleteButton.addEventListener("click", function () {
-        task.remove();
-        updateCounter();
-        filterTasks();
-    });
-}
-
-// 5. Add a new task
-function addTask() {
+function addTask(){
     const taskText = taskInput.value.trim();
 
-    // Do not add an empty task
-    if (taskText === "") {
+    if (taskText===""){
         taskInput.focus();
         return;
     }
 
-    // Create the list item
     const newTask = document.createElement("li");
     newTask.classList.add("task-item");
 
-    // Create the checkbox
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.setAttribute("aria-label", "Mark task as completed");
 
-    // Create the task text
     const taskName = document.createElement("span");
     taskName.textContent = taskText;
 
-    // Create the Delete button
     const deleteButton = document.createElement("button");
-    deleteButton.textContent = "Delete";
     deleteButton.type = "button";
+    deleteButton.textContent = "Delete";
 
-    // Put the elements inside the list item
+    checkbox.addEventListener("change", function () {
+        newTask.classList.toggle("completed", checkbox.checked);
+        updateCounter();
+        filterTasks();
+    });
+
+    deleteButton.addEventListener("click", function () {
+        newTask.remove();
+        updateCounter();
+        filterTasks();
+    });
+
     newTask.appendChild(checkbox);
     newTask.appendChild(taskName);
     newTask.appendChild(deleteButton);
 
-    // Add the task to the page
     taskList.appendChild(newTask);
 
-    // Connect the checkbox and Delete button
-    setupTask(newTask);
-
-    // Clear the input
     taskInput.value = "";
-    taskInput.focus();
 
-    // Refresh the counter and filters
     updateCounter();
     filterTasks();
+    taskInput.focus();
 }
 
-// 6. Handle the Add button
 addButton.addEventListener("click", addTask);
 
-// 7. Allow Enter to add a task
-taskInput.addEventListener("keydown", function (event) {
-    if (event.key === "Enter") {
+taskInput.addEventListener("keydown", function (event){
+    if (event.key === "Enter"){
         addTask();
     }
 });
 
-// 8. Handle All, Active, and Completed filters
-filterButtons.forEach(function (button) {
-    button.addEventListener("click", function () {
+filterButtons.forEach(function (button){
+    button.addEventListener("click", function(){
         currentFilter = button.dataset.filter;
 
-        // Highlight the selected filter
-        filterButtons.forEach(function (filterButton) {
+        filterButtons.forEach(function (filterButton){
             filterButton.setAttribute(
                 "aria-pressed",
                 filterButton === button ? "true" : "false"
@@ -164,16 +121,13 @@ filterButtons.forEach(function (button) {
     });
 });
 
-// 9. Clear all completed tasks
-clearCompletedButton.addEventListener("click", function () {
+clearCompletedButton.addEventListener("click", function (){
     const tasks = taskList.querySelectorAll(".task-item");
 
-    tasks.forEach(function (task) {
-        const checkbox = task.querySelector(
-            'input[type="checkbox"]'
-        );
+    tasks.forEach(function (task){
+        const checkbox = task.querySelector('input[type="checkbox"]');
 
-        if (checkbox.checked) {
+        if (checkbox.checked){
             task.remove();
         }
     });
@@ -182,21 +136,5 @@ clearCompletedButton.addEventListener("click", function () {
     filterTasks();
 });
 
-// 10. Set up the sample tasks already in the HTML
-const existingTasks = taskList.querySelectorAll(".task-item");
-
-existingTasks.forEach(function (task) {
-    setupTask(task);
-});
-
-// 11. Initialize the app when the page loads
 updateCounter();
 filterTasks();
-
-// Set the default filter as selected
-filterButtons.forEach(function (button) {
-    button.setAttribute(
-        "aria-pressed",
-        button.dataset.filter === currentFilter ? "true" : "false"
-    );
-});
